@@ -44,9 +44,11 @@ async def get_laisee_by_hash(unique_hash: str) -> Optional[Laisee]:
 async def get_laisees(wallet_ids: list[str]) -> list[Laisee]:
     if not wallet_ids:
         return []
-    q = ",".join([f"'{w}'" for w in wallet_ids])
+    placeholders = ",".join(f":w{i}" for i in range(len(wallet_ids)))
+    values = {f"w{i}": w for i, w in enumerate(wallet_ids)}
     return await db.fetchall(
-        f"SELECT * FROM laisee.laisees WHERE wallet IN ({q}) ORDER BY created_at DESC",
+        f"SELECT * FROM laisee.laisees WHERE wallet IN ({placeholders}) ORDER BY created_at DESC",
+        values,
         model=Laisee,
     )
 
