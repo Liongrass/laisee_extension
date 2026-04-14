@@ -101,8 +101,7 @@ async def claim_laisee_for_withdrawal(laisee_id: str) -> bool:
         "WHERE id = :id AND is_withdrawn = FALSE AND is_paid = TRUE",
         {"id": laisee_id, "now": datetime.now(timezone.utc)},
     )
-    # db.execute returns the affected-row count (int) for UPDATE statements
-    return result == 1
+    return result.rowcount == 1
 
 
 async def revert_laisee_withdrawal_claim(laisee_id: str) -> None:
