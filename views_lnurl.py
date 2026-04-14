@@ -17,7 +17,11 @@ from lnurl import (
 )
 from pydantic import parse_obj_as
 
-from .crud import get_laisee_by_hash, mark_laisee_withdrawn
+from .crud import (
+    claim_laisee_for_withdrawal,
+    get_laisee_by_hash,
+    revert_laisee_withdrawal_claim,
+)
 
 laisee_lnurl_router = APIRouter(prefix="/api/v1/lnurl")
 
@@ -101,6 +105,13 @@ async def api_lnurl_withdraw_callback(
             )
         )
 
+    # Atomically claim the withdrawal before touching the Lightning network.
+    # Only one concurrent request can win this UPDATE; the rest get False here
+    # and are turned away before any payment is attempted.
+    claimed = await claim_laisee_for_withdrawal(laisee.id)
+    if not claimed:
+        return LnurlErrorResponse(reason="This laisee has already been withdrawn.")
+
     try:
         await pay_invoice(
             wallet_id=laisee.wallet,
@@ -109,9 +120,10 @@ async def api_lnurl_withdraw_callback(
             extra={"tag": "laisee_withdraw", "laisee_id": laisee.id},
         )
     except Exception as exc:
+        # Payment failed — revert so the recipient can try again.
+        await revert_laisee_withdrawal_claim(laisee.id)
         return LnurlErrorResponse(reason=f"Withdrawal failed: {exc!s}")
 
-    await mark_laisee_withdrawn(laisee.id)
     return LnurlSuccessResponse()
 
 

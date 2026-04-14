@@ -83,3 +83,35 @@ async def mark_laisee_withdrawn(laisee_id: str) -> Optional[Laisee]:
     laisee.is_withdrawn = True
     laisee.withdrawn_at = datetime.now(timezone.utc)
     return await update_laisee(laisee)
+
+
+async def claim_laisee_for_withdrawal(laisee_id: str) -> bool:
+    """Atomically flip is_withdrawn to TRUE only if it is currently FALSE.
+
+    Returns True if this call won the race (exactly one row updated), False if
+    another concurrent request already claimed the withdrawal.  Callers must
+    revert via revert_laisee_withdrawal_claim() if the subsequent pay_invoice
+    call fails, so the envelope can be retried.
+    """
+    result = await db.execute(
+        "UPDATE laisee.laisees "
+        "SET is_withdrawn = TRUE, withdrawn_at = :now "
+        "WHERE id = :id AND is_withdrawn = FALSE AND is_paid = TRUE",
+        {"id": laisee_id, "now": datetime.now(timezone.utc)},
+    )
+    # db.execute returns the affected-row count (int) for UPDATE statements
+    return result == 1
+
+
+async def revert_laisee_withdrawal_claim(laisee_id: str) -> None:
+    """Undo a claim made by claim_laisee_for_withdrawal when pay_invoice fails.
+
+    This re-opens the envelope for a retry.  Only call this on a confirmed
+    payment failure — never after a successful payment.
+    """
+    await db.execute(
+        "UPDATE laisee.laisees "
+        "SET is_withdrawn = FALSE, withdrawn_at = NULL "
+        "WHERE id = :id",
+        {"id": laisee_id},
+    )
