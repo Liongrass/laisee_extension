@@ -1,3 +1,9 @@
+function laiseeStateLabel(row) {
+  if (row.is_withdrawn) return '⚫ Withdrawn'
+  if (row.is_paid) return '🟢 Funded'
+  return '🟠 Unfunded'
+}
+
 window.PageLaisee = {
   template: '#page-laisee',
   computed: {
@@ -21,7 +27,7 @@ window.PageLaisee = {
             name: 'status',
             label: 'Status',
             align: 'left',
-            format: (_, row) => this.stateLabel(row)
+            format: (_, row) => laiseeStateLabel(row)
           },
           {
             name: 'amount',
@@ -58,9 +64,7 @@ window.PageLaisee = {
   },
   methods: {
     stateLabel(row) {
-      if (row.is_withdrawn) return '⚫ Withdrawn'
-      if (row.is_paid) return '🟢 Funded'
-      return '🟠 Unfunded'
+      return laiseeStateLabel(row)
     },
     getLaisees() {
       LNbits.api
