@@ -1,0 +1,8 @@
+[
+  {
+    "path": "/laisee/",
+    "name": "PageLaisee",
+    "template": "/laisee/static/index.vue",
+    "component": "/laisee/static/index.js"
+  }
+]

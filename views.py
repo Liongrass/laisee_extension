@@ -1,19 +1,9 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
-from lnbits.core.models import User
+from fastapi import APIRouter, Depends
+from lnbits.core.views.generic import index
 from lnbits.decorators import check_user_exists
-from lnbits.helpers import template_renderer
 
 laisee_generic_router = APIRouter()
 
-
-def laisee_renderer():
-    return template_renderer(["laisee/templates"])
-
-
-@laisee_generic_router.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
-    return laisee_renderer().TemplateResponse(
-        "laisee/index.html",
-        {"request": request, "user": user.json()},
-    )
+laisee_generic_router.add_api_route(
+    "/", methods=["GET"], endpoint=index, dependencies=[Depends(check_user_exists)]
+)

@@ -1,9 +1,13 @@
-window.app = Vue.extend({
-  mixins: [windowMixin],
+window.PageLaisee = {
+  template: '#page-laisee',
+  computed: {
+    baseUrl() {
+      return window.location.origin + '/laisee/api/v1/laisees'
+    }
+  },
   data() {
     return {
-      lnurl: '',
-      nfcTagWriting: false,
+      activeUrl: '',
       laisees: [],
       laiseeTable: {
         columns: [
@@ -12,6 +16,12 @@ window.app = Vue.extend({
             label: 'Title',
             align: 'left',
             field: 'title'
+          },
+          {
+            name: 'status',
+            label: 'Status',
+            align: 'left',
+            format: (_, row) => this.stateLabel(row)
           },
           {
             name: 'amount',
@@ -48,19 +58,9 @@ window.app = Vue.extend({
   },
   methods: {
     stateLabel(row) {
-      if (row.is_withdrawn) return 'Withdrawn'
-      if (row.is_paid) return 'Funded – ready to withdraw'
-      return 'Unfunded – waiting for payment'
-    },
-    stateColor(row) {
-      if (row.is_withdrawn) return 'grey'
-      if (row.is_paid) return 'green'
-      return 'orange'
-    },
-    stateIcon(row) {
-      if (row.is_withdrawn) return 'check_circle'
-      if (row.is_paid) return 'savings'
-      return 'hourglass_empty'
+      if (row.is_withdrawn) return '⚫ Withdrawn'
+      if (row.is_paid) return '🟢 Funded'
+      return '🟠 Unfunded'
     },
     getLaisees() {
       LNbits.api
@@ -77,6 +77,7 @@ window.app = Vue.extend({
     openQrCodeDialog(laiseeId) {
       const laisee = this.laisees.find(l => l.id === laiseeId)
       if (!laisee) return
+      this.activeUrl = laisee.lnurl_url
       this.qrCodeDialog.data = laisee
       this.qrCodeDialog.show = true
     },
@@ -91,8 +92,7 @@ window.app = Vue.extend({
           title: this.formDialog.data.title,
           wallet: wallet.id,
           min_sats: this.formDialog.data.min_sats,
-          max_sats: this.formDialog.data.max_sats,
-          memo: this.formDialog.data.memo || null
+          max_sats: this.formDialog.data.max_sats
         })
         .then(response => {
           this.laisees.unshift(response.data)
@@ -138,4 +138,4 @@ window.app = Vue.extend({
       this.getLaisees()
     }
   }
-})
+}
