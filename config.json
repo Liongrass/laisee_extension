@@ -1,0 +1,14 @@
+{
+  "name": "Laisee",
+  "short_description": "Digital red envelopes – pay once, withdraw once",
+  "tile": "/laisee/static/laisee.png",
+  "min_lnbits_version": "1.0.0",
+  "contributors": [
+    {
+      "name": "Leo",
+      "uri": "mailto:leo@lightning.engineering",
+      "role": "Developer"
+    }
+  ],
+  "license": "MIT"
+}
