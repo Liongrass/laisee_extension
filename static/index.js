@@ -18,6 +18,12 @@ window.PageLaisee = {
       laiseeTable: {
         columns: [
           {
+            name: 'id',
+            label: 'ID',
+            align: 'left',
+            field: 'id'
+          },
+          {
             name: 'title',
             label: 'Title',
             align: 'left',
