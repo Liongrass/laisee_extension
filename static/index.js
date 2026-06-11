@@ -59,7 +59,8 @@ window.PageLaisee = {
         show: false,
         data: {
           min_sats: 1000,
-          max_sats: 1000
+          max_sats: 1000,
+          allow_comment: false
         }
       },
       qrCodeDialog: {
@@ -102,7 +103,8 @@ window.PageLaisee = {
           title: this.formDialog.data.title,
           wallet: wallet.id,
           min_sats: this.formDialog.data.min_sats,
-          max_sats: this.formDialog.data.max_sats
+          max_sats: this.formDialog.data.max_sats,
+          allow_comment: this.formDialog.data.allow_comment
         })
         .then(response => {
           this.laisees.unshift(response.data)
@@ -138,7 +140,8 @@ window.PageLaisee = {
         show: false,
         data: {
           min_sats: 1000,
-          max_sats: 1000
+          max_sats: 1000,
+          allow_comment: false
         }
       }
     }

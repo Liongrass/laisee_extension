@@ -11,6 +11,7 @@ class CreateLaiseeData(BaseModel):
     min_sats: int = Query(1, ge=1)
     max_sats: int = Query(1, ge=1)
     memo: Optional[str] = None
+    allow_comment: bool = False
 
 
 class Laisee(BaseModel):
@@ -26,6 +27,8 @@ class Laisee(BaseModel):
     payment_hash: Optional[str] = None
     paid_amount: int = 0  # sats actually paid; used as withdraw amount
     memo: Optional[str] = None
+    allow_comment: bool = False
+    comment: Optional[str] = None
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

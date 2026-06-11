@@ -257,6 +257,10 @@
               ></q-input>
             </div>
           </div>
+          <q-toggle
+            v-model="formDialog.data.allow_comment"
+            label="Allow payer to add a comment (up to 256 characters)"
+          ></q-toggle>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
@@ -298,10 +302,17 @@
             <span
               v-text="qrCodeDialog.data.min_sats + ' – ' + qrCodeDialog.data.max_sats + ' sat'"
             ></span>
+            <span v-if="qrCodeDialog.data.allow_comment">
+              <br /><strong>Comment:</strong> allowed (up to 256 characters)
+            </span>
           </span>
           <span v-else>
             <strong>Withdraw amount:</strong>
             <span v-text="qrCodeDialog.data.paid_amount + ' sat'"></span>
+            <span v-if="qrCodeDialog.data.comment">
+              <br /><strong>Payer comment:</strong>
+              <span v-text="qrCodeDialog.data.comment"></span>
+            </span>
           </span>
         </p>
         <div class="row q-mt-lg q-gutter-sm">

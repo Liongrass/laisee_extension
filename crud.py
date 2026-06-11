@@ -19,6 +19,7 @@ async def create_laisee(data: CreateLaiseeData, wallet_id: str) -> Laisee:
         unique_hash=urlsafe_short_hash(),
         k1=urlsafe_short_hash(),
         memo=data.memo,
+        allow_comment=data.allow_comment,
         created_at=datetime.now(timezone.utc),
     )
     await db.insert("laisee.laisees", laisee)
@@ -66,7 +67,10 @@ async def delete_laisee(laisee_id: str) -> None:
 
 
 async def mark_laisee_paid(
-    laisee_id: str, payment_hash: str, paid_amount_sats: int
+    laisee_id: str,
+    payment_hash: str,
+    paid_amount_sats: int,
+    comment: Optional[str] = None,
 ) -> Optional[Laisee]:
     laisee = await get_laisee(laisee_id)
     if not laisee or laisee.is_paid:
@@ -75,6 +79,8 @@ async def mark_laisee_paid(
     laisee.payment_hash = payment_hash
     laisee.paid_amount = paid_amount_sats
     laisee.paid_at = datetime.now(timezone.utc)
+    if comment:
+        laisee.comment = comment
     return await update_laisee(laisee)
 
 

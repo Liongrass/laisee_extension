@@ -22,3 +22,11 @@ async def m001_initial(db: Connection):
             withdrawn_at TIMESTAMP
         );
     """)
+
+
+async def m002_add_comment(db: Connection):
+    """Add comment support: allow_comment flag and comment storage."""
+    await db.execute(
+        "ALTER TABLE laisee.laisees ADD COLUMN allow_comment BOOLEAN NOT NULL DEFAULT FALSE"
+    )
+    await db.execute("ALTER TABLE laisee.laisees ADD COLUMN comment TEXT")

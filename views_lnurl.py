@@ -35,6 +35,7 @@ async def api_lnurl_pay_callback(
     request: Request,
     unique_hash: str,
     amount: int = Query(...),
+    comment: str = Query(default=""),
 ) -> LnurlErrorResponse | LnurlPayActionResponse:
     laisee = await get_laisee_by_hash(unique_hash)
     if not laisee:
@@ -42,6 +43,12 @@ async def api_lnurl_pay_callback(
 
     if laisee.is_paid:
         return LnurlErrorResponse(reason="This laisee is already funded.")
+
+    if comment and not laisee.allow_comment:
+        return LnurlErrorResponse(reason="Comments are not allowed for this laisee.")
+
+    if len(comment) > 256:
+        return LnurlErrorResponse(reason="Comment must be 256 characters or fewer.")
 
     min_msat = laisee.min_sats * 1000
     max_msat = laisee.max_sats * 1000
@@ -56,12 +63,15 @@ async def api_lnurl_pay_callback(
         )
 
     metadata = LnurlPayMetadata(json.dumps([["text/plain", laisee.title]]))
+    extra: dict = {"tag": "laisee", "laisee_id": laisee.id}
+    if comment:
+        extra["comment"] = comment
     payment = await create_invoice(
         wallet_id=laisee.wallet,
         amount=int(amount / 1000),
         memo=laisee.title,
         unhashed_description=metadata.encode(),
-        extra={"tag": "laisee", "laisee_id": laisee.id},
+        extra=extra,
     )
     invoice = parse_obj_as(LightningInvoice, LightningInvoice(payment.bolt11))
     # disposable=False: wallet should keep the LNURL – same QR becomes a withdraw link
@@ -155,7 +165,7 @@ async def api_lnurl_response(
             k1=laisee.k1,
             minWithdrawable=MilliSatoshi(laisee.paid_amount * 1000),
             maxWithdrawable=MilliSatoshi(laisee.paid_amount * 1000),
-            defaultDescription=laisee.title,
+            defaultDescription=laisee.comment or laisee.title,
         )
 
     # LNURL-Pay mode
@@ -164,9 +174,12 @@ async def api_lnurl_response(
     )
     callback_url = parse_obj_as(CallbackUrl, url)
     metadata = LnurlPayMetadata(json.dumps([["text/plain", laisee.title]]))
-    return LnurlPayResponse(
+    pay_response = LnurlPayResponse(
         callback=callback_url,
         minSendable=MilliSatoshi(laisee.min_sats * 1000),
         maxSendable=MilliSatoshi(laisee.max_sats * 1000),
         metadata=metadata,
     )
+    if laisee.allow_comment:
+        pay_response.commentAllowed = 256
+    return pay_response

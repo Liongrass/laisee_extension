@@ -27,8 +27,11 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # payment.amount is in millisatoshis; convert to sats
     paid_amount_sats = abs(payment.amount) // 1000
+    comment = payment.extra.get("comment") or None
 
-    laisee = await mark_laisee_paid(laisee_id, payment.payment_hash, paid_amount_sats)
+    laisee = await mark_laisee_paid(
+        laisee_id, payment.payment_hash, paid_amount_sats, comment
+    )
     if laisee:
         logger.info(
             f"Laisee {laisee_id} funded with {paid_amount_sats} sats "
