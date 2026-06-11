@@ -137,17 +137,18 @@
                     </h5>
                     <code
                       >{"title": &lt;string&gt;, "min_sats": &lt;integer&gt;,
-                      "max_sats": &lt;integer&gt;}</code
+                      "max_sats": &lt;integer&gt;, "allow_comment":
+                      &lt;boolean, default false&gt;}</code
                     >
                     <h5 class="text-caption q-mt-sm q-mb-none">
                       Returns 201 CREATED
                     </h5>
-                    <code>{"id": ..., "lnurl_url": ..., ...}</code>
+                    <code>{"id": ..., "lnurl_url": ..., "allow_comment": ..., ...}</code>
                     <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
                     <code
                       >curl -X POST
                       <span v-text="baseUrl"></span>
-                      -d '{"title":"Happy New Year","min_sats":1000,"max_sats":1000}'
+                      -d '{"title":"Happy New Year","min_sats":1000,"max_sats":1000,"allow_comment":true}'
                       -H "Content-type: application/json"
                       -H "X-Api-Key:
                       <span v-text="g.user.wallets[0].adminkey"></span>"
