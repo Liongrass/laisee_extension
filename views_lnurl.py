@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from bolt11 import decode as decode_bolt11
 from fastapi import APIRouter, Query, Request
@@ -18,7 +19,10 @@ from lnurl import (
 from pydantic import parse_obj_as
 
 from .crud import (
+    PENDING_INVOICE_TIMEOUT_SECONDS,
+    bind_laisee_funding_invoice,
     claim_laisee_for_withdrawal,
+    clear_laisee_pending_invoice,
     get_laisee_by_hash,
     revert_laisee_withdrawal_claim,
 )
@@ -43,6 +47,16 @@ async def api_lnurl_pay_callback(
 
     if laisee.is_paid:
         return LnurlErrorResponse(reason="This laisee is already funded.")
+
+    if laisee.pending_payment_hash and laisee.pending_created_at:
+        age = (datetime.now(timezone.utc) - laisee.pending_created_at).total_seconds()
+        if age < PENDING_INVOICE_TIMEOUT_SECONDS:
+            # Someone already holds a live funding invoice for this envelope.
+            # Refuse to mint another until it settles or expires.
+            return LnurlErrorResponse(
+                reason="This laisee is already being funded. Try again later."
+            )
+        # else: previous invoice expired — the atomic bind below will reclaim the slot
 
     if comment and not laisee.allow_comment:
         return LnurlErrorResponse(reason="Comments are not allowed for this laisee.")
@@ -73,6 +87,13 @@ async def api_lnurl_pay_callback(
         unhashed_description=metadata.encode(),
         extra=extra,
     )
+    # Atomically bind this invoice as the envelope's single funding invoice.
+    # A concurrent caller may have beaten us to it; if so, discard ours.
+    bound = await bind_laisee_funding_invoice(laisee.id, payment.payment_hash)
+    if not bound:
+        return LnurlErrorResponse(
+            reason="This laisee is already being funded. Try again later."
+        )
     invoice = parse_obj_as(LightningInvoice, LightningInvoice(payment.bolt11))
     # disposable=False: wallet should keep the LNURL – same QR becomes a withdraw link
     return LnurlPayActionResponse(pr=invoice, disposable=False)
@@ -101,13 +122,16 @@ async def api_lnurl_withdraw_callback(
     if laisee.k1 != k1:
         return LnurlErrorResponse(reason="Invalid k1.")
 
-    bolt11 = decode_bolt11(pr)
+    try:
+        bolt11 = decode_bolt11(pr)
+    except Exception:
+        return LnurlErrorResponse(reason="Invalid invoice.")
     if not bolt11.amount_msat:
         return LnurlErrorResponse(reason="Zero-amount invoices are not supported.")
 
-    # allow a small tolerance for routing fee rounding (within 1 sat)
+    # allow a small tolerance for routing fee rounding (at most 1 sat under)
     expected_msat = laisee.paid_amount * 1000
-    if abs(bolt11.amount_msat - expected_msat) > 1000:
+    if bolt11.amount_msat > expected_msat or expected_msat - bolt11.amount_msat > 1000:
         return LnurlErrorResponse(
             reason=(
                 f"Wrong amount. Expected {laisee.paid_amount} sats, "

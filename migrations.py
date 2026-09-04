@@ -30,3 +30,20 @@ async def m002_add_comment(db: Connection):
         "ALTER TABLE laisee.laisees ADD COLUMN allow_comment BOOLEAN NOT NULL DEFAULT FALSE"
     )
     await db.execute("ALTER TABLE laisee.laisees ADD COLUMN comment TEXT")
+
+
+async def m003_add_pending_payment_hash(db: Connection):
+    """Track the single in-flight funding invoice per envelope.
+
+    Prevents the multi-funder race where pay-cb minted unlimited live invoices.
+    """
+    await db.execute(
+        "ALTER TABLE laisee.laisees ADD COLUMN pending_payment_hash TEXT"
+    )
+
+
+async def m004_add_pending_created_at(db: Connection):
+    """Timestamp for the pending funding invoice, so abandoned invoices expire."""
+    await db.execute(
+        "ALTER TABLE laisee.laisees ADD COLUMN pending_created_at TIMESTAMP"
+    )
