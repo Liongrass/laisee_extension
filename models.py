@@ -25,6 +25,8 @@ class Laisee(BaseModel):
     is_paid: bool = False
     is_withdrawn: bool = False
     payment_hash: Optional[str] = None
+    pending_payment_hash: Optional[str] = None  # funding invoice currently in flight
+    pending_created_at: Optional[datetime] = None  # when the pending invoice was bound
     paid_amount: int = 0  # sats actually paid; used as withdraw amount
     memo: Optional[str] = None
     allow_comment: bool = False

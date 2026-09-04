@@ -4,7 +4,7 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 from loguru import logger
 
-from .crud import mark_laisee_paid
+from .crud import clear_laisee_pending_invoice, mark_laisee_paid
 
 
 async def wait_for_paid_invoices():
@@ -32,6 +32,8 @@ async def on_invoice_paid(payment: Payment) -> None:
     laisee = await mark_laisee_paid(
         laisee_id, payment.payment_hash, paid_amount_sats, comment
     )
+    # The funding invoice has settled — release the pending slot.
+    await clear_laisee_pending_invoice(laisee_id, payment.payment_hash)
     if laisee:
         logger.info(
             f"Laisee {laisee_id} funded with {paid_amount_sats} sats "

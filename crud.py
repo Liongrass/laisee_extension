@@ -93,6 +93,47 @@ async def mark_laisee_withdrawn(laisee_id: str) -> Optional[Laisee]:
     return await update_laisee(laisee)
 
 
+PENDING_INVOICE_TIMEOUT_SECONDS = 3600  # match the LN invoice expiry
+
+
+async def bind_laisee_funding_invoice(laisee_id: str, payment_hash: str) -> bool:
+    """Atomically record the single in-flight funding invoice for an envelope.
+
+    Only succeeds while the envelope is unfunded and has no other pending
+    invoice (or the previous pending invoice has expired). This closes the
+    multi-funder race: at most one live funding invoice exists per envelope
+    at any time.
+    """
+    result = await db.execute(
+        "UPDATE laisee.laisees "
+        "SET pending_payment_hash = :hash, pending_created_at = :now "
+        "WHERE id = :id AND is_paid = FALSE AND ("
+        "  pending_payment_hash IS NULL OR pending_created_at < :expiry"
+        ")",
+        {
+            "id": laisee_id,
+            "hash": payment_hash,
+            "now": datetime.now(timezone.utc),
+            "expiry": datetime.fromtimestamp(
+                datetime.now(timezone.utc).timestamp()
+                - PENDING_INVOICE_TIMEOUT_SECONDS,
+                tz=timezone.utc,
+            ),
+        },
+    )
+    return result.rowcount == 1
+
+
+async def clear_laisee_pending_invoice(laisee_id: str, payment_hash: str) -> None:
+    """Release the pending slot once the payment settles."""
+    await db.execute(
+        "UPDATE laisee.laisees "
+        "SET pending_payment_hash = NULL, pending_created_at = NULL "
+        "WHERE id = :id AND pending_payment_hash = :hash",
+        {"id": laisee_id, "hash": payment_hash},
+    )
+
+
 async def claim_laisee_for_withdrawal(laisee_id: str) -> bool:
     """Atomically flip is_withdrawn to TRUE only if it is currently FALSE.
 

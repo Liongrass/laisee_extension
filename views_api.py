@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from lnbits.core.crud import get_user
-from lnbits.core.models import SimpleStatus, WalletTypeInfo
+from lnbits.core.models import KeyType, SimpleStatus, WalletTypeInfo
 from lnbits.decorators import require_admin_key, require_invoice_key
 
 from .crud import create_laisee, delete_laisee, get_laisee, get_laisees
@@ -10,6 +10,20 @@ from .helpers import create_lnurl
 from .models import CreateLaiseeData, Laisee
 
 laisee_api_router = APIRouter(prefix="/api/v1")
+
+
+def _redact_claim_fields(laisee: Laisee, key_info: WalletTypeInfo) -> Laisee:
+    """Hide the bearer claim credential from read-only (invoice key) callers.
+
+    unique_hash + k1 together form the LNURL-withdraw link: anyone holding
+    them can drain a funded envelope. Only the admin key may see them.
+    """
+    if key_info.key_type != KeyType.admin:
+        laisee.unique_hash = ""
+        laisee.k1 = ""
+        laisee.lnurl = None
+        laisee.lnurl_url = None
+    return laisee
 
 
 @laisee_api_router.get("/laisees", status_code=HTTPStatus.OK)
@@ -31,6 +45,7 @@ async def api_list_laisees(
             laisee.lnurl_url = str(lnurl.url)
         except ValueError:
             pass
+        _redact_claim_fields(laisee, key_info)
     return laisees
 
 
@@ -55,7 +70,7 @@ async def api_get_laisee(
         laisee.lnurl_url = str(lnurl.url)
     except ValueError:
         pass
-    return laisee
+    return _redact_claim_fields(laisee, key_info)
 
 
 @laisee_api_router.post("/laisees", status_code=HTTPStatus.CREATED)
@@ -71,6 +86,14 @@ async def api_create_laisee(
         )
     if not data.wallet:
         data.wallet = key_info.wallet.id
+    elif data.wallet != key_info.wallet.id:
+        # An envelope's funding invoice and its claim payout both move money
+        # through `data.wallet`. Never let a caller bind an envelope to a
+        # wallet they did not authenticate as.
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Cannot create a laisee for another wallet.",
+        )
 
     laisee = await create_laisee(data, data.wallet)
     try:
