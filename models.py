@@ -12,6 +12,7 @@ class CreateLaiseeData(BaseModel):
     max_sats: int = Query(1, ge=1)
     memo: Optional[str] = None
     allow_comment: bool = False
+    deduct_fees: bool = False
 
 
 class Laisee(BaseModel):
@@ -30,6 +31,7 @@ class Laisee(BaseModel):
     paid_amount: int = 0  # sats actually paid; used as withdraw amount
     memo: Optional[str] = None
     allow_comment: bool = False
+    deduct_fees: bool = False  # routing fees come out of the envelope, not the wallet
     comment: Optional[str] = None
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
@@ -49,6 +51,14 @@ class Laisee(BaseModel):
         default=None,
         no_database=True,
         description="Raw LNURL callback URL (use for QR code generation)",
+    )
+    withdrawable_sats: Optional[int] = Field(
+        default=None,
+        no_database=True,
+        description=(
+            "Sats the recipient can withdraw once funded. Equals paid_amount, "
+            "minus the LNbits fee reserve if deduct_fees is set."
+        ),
     )
 
     @property

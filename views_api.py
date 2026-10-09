@@ -6,7 +6,7 @@ from lnbits.core.models import KeyType, SimpleStatus, WalletTypeInfo
 from lnbits.decorators import require_admin_key, require_invoice_key
 
 from .crud import create_laisee, delete_laisee, get_laisee, get_laisees
-from .helpers import create_lnurl
+from .helpers import create_lnurl, withdrawable_sats
 from .models import CreateLaiseeData, Laisee
 
 laisee_api_router = APIRouter(prefix="/api/v1")
@@ -39,6 +39,9 @@ async def api_list_laisees(
 
     laisees = await get_laisees(wallet_ids)
     for laisee in laisees:
+        laisee.withdrawable_sats = withdrawable_sats(
+            laisee.paid_amount, laisee.deduct_fees
+        )
         try:
             lnurl = create_lnurl(laisee, request)
             laisee.lnurl = str(lnurl.bech32)
@@ -64,6 +67,9 @@ async def api_get_laisee(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your laisee."
         )
+    laisee.withdrawable_sats = withdrawable_sats(
+        laisee.paid_amount, laisee.deduct_fees
+    )
     try:
         lnurl = create_lnurl(laisee, request)
         laisee.lnurl = str(lnurl.bech32)
@@ -84,6 +90,14 @@ async def api_create_laisee(
             status_code=HTTPStatus.BAD_REQUEST,
             detail="min_sats cannot be greater than max_sats.",
         )
+    if data.deduct_fees and withdrawable_sats(data.min_sats, True) <= 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=(
+                "min_sats is too small to cover the transaction fee "
+                "reserve. Raise min_sats or disable deduct_fees."
+            ),
+        )
     if not data.wallet:
         data.wallet = key_info.wallet.id
     elif data.wallet != key_info.wallet.id:
@@ -96,6 +110,9 @@ async def api_create_laisee(
         )
 
     laisee = await create_laisee(data, data.wallet)
+    laisee.withdrawable_sats = withdrawable_sats(
+        laisee.paid_amount, laisee.deduct_fees
+    )
     try:
         lnurl = create_lnurl(laisee, request)
         laisee.lnurl = str(lnurl.bech32)

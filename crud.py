@@ -20,6 +20,7 @@ async def create_laisee(data: CreateLaiseeData, wallet_id: str) -> Laisee:
         k1=urlsafe_short_hash(),
         memo=data.memo,
         allow_comment=data.allow_comment,
+        deduct_fees=data.deduct_fees,
         created_at=datetime.now(timezone.utc),
     )
     await db.insert("laisee.laisees", laisee)

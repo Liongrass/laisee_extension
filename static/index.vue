@@ -138,6 +138,7 @@
                     <code
                       >{"title": &lt;string&gt;, "min_sats": &lt;integer&gt;,
                       "max_sats": &lt;integer&gt;, "allow_comment":
+                      &lt;boolean, default false&gt;, "deduct_fees":
                       &lt;boolean, default false&gt;}</code
                     >
                     <h5 class="text-caption q-mt-sm q-mb-none">
@@ -262,6 +263,15 @@
             v-model="formDialog.data.allow_comment"
             label="Allow payer to add a comment (up to 256 characters)"
           ></q-toggle>
+          <q-toggle
+            v-model="formDialog.data.deduct_fees"
+            label="Deduct transaction fees from laisee"
+          >
+            <q-tooltip>
+              The withdrawable amount is the deposit minus this LNbits
+              instance's fee limit, instead of paying fees from the wallet.
+            </q-tooltip>
+          </q-toggle>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
@@ -306,10 +316,19 @@
             <span v-if="qrCodeDialog.data.allow_comment">
               <br /><strong>Comment:</strong> allowed (up to 256 characters)
             </span>
+            <span v-if="qrCodeDialog.data.deduct_fees">
+              <br /><strong>Fees:</strong> deducted from laisee
+            </span>
           </span>
           <span v-else>
             <strong>Withdraw amount:</strong>
-            <span v-text="qrCodeDialog.data.paid_amount + ' sat'"></span>
+            <span
+              v-text="(qrCodeDialog.data.withdrawable_sats ?? qrCodeDialog.data.paid_amount) + ' sat'"
+            ></span>
+            <span
+              v-if="qrCodeDialog.data.deduct_fees"
+              v-text="'(' + qrCodeDialog.data.paid_amount + ' sat deposited, fees deducted)'"
+            ></span>
             <span v-if="qrCodeDialog.data.comment">
               <br /><strong>Payer comment:</strong>
               <span v-text="qrCodeDialog.data.comment"></span>

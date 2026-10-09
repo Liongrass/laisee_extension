@@ -20,6 +20,7 @@ The QR code never changes. The protocol underneath it does.
 
 1. Install the extension in LNbits.
 2. Click **New Laisee**, pick a wallet, give it a title, and set a sat amount (or a min/max range).
+   Optionally enable **Deduct transaction fees from laisee**: the withdrawal's routing fees are then paid out of the envelope instead of your wallet, so the recipient can withdraw the deposited amount minus the LNbits instance's fee reserve (`max(LNBITS_RESERVE_FEE_MIN, LNBITS_RESERVE_FEE_PERCENT)`, plus any service fee). Any part of the reserve not spent on fees stays in your wallet.
 3. Click the **visibility** icon on any row to see its QR code and LNURL.
 4. Share the QR. The sender scans and pays; the recipient scans and withdraws.
 

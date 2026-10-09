@@ -26,6 +26,7 @@ from .crud import (
     get_laisee_by_hash,
     revert_laisee_withdrawal_claim,
 )
+from .helpers import withdrawable_sats
 
 laisee_lnurl_router = APIRouter(prefix="/api/v1/lnurl")
 
@@ -129,12 +130,18 @@ async def api_lnurl_withdraw_callback(
     if not bolt11.amount_msat:
         return LnurlErrorResponse(reason="Zero-amount invoices are not supported.")
 
+    withdraw_sats = withdrawable_sats(laisee.paid_amount, laisee.deduct_fees)
+    if withdraw_sats <= 0:
+        return LnurlErrorResponse(
+            reason="This laisee is too small to cover the transaction fees."
+        )
+
     # allow a small tolerance for routing fee rounding (at most 1 sat under)
-    expected_msat = laisee.paid_amount * 1000
+    expected_msat = withdraw_sats * 1000
     if bolt11.amount_msat > expected_msat or expected_msat - bolt11.amount_msat > 1000:
         return LnurlErrorResponse(
             reason=(
-                f"Wrong amount. Expected {laisee.paid_amount} sats, "
+                f"Wrong amount. Expected {withdraw_sats} sats, "
                 f"got {bolt11.amount_msat // 1000} sats."
             )
         )
@@ -150,7 +157,7 @@ async def api_lnurl_withdraw_callback(
         await pay_invoice(
             wallet_id=laisee.wallet,
             payment_request=pr,
-            max_sat=laisee.paid_amount,
+            max_sat=withdraw_sats,
             extra={"tag": "laisee_withdraw", "laisee_id": laisee.id},
         )
     except Exception as exc:
@@ -184,11 +191,18 @@ async def api_lnurl_response(
             )
         )
         callback_url = parse_obj_as(CallbackUrl, url)
+        withdraw_msat = (
+            withdrawable_sats(laisee.paid_amount, laisee.deduct_fees) * 1000
+        )
+        if withdraw_msat <= 0:
+            return LnurlErrorResponse(
+                reason="This laisee is too small to cover the transaction fees."
+            )
         return LnurlWithdrawResponse(
             callback=callback_url,
             k1=laisee.k1,
-            minWithdrawable=MilliSatoshi(laisee.paid_amount * 1000),
-            maxWithdrawable=MilliSatoshi(laisee.paid_amount * 1000),
+            minWithdrawable=MilliSatoshi(withdraw_msat),
+            maxWithdrawable=MilliSatoshi(withdraw_msat),
             defaultDescription=laisee.comment or laisee.title,
         )
 

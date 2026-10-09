@@ -47,3 +47,10 @@ async def m004_add_pending_created_at(db: Connection):
     await db.execute(
         "ALTER TABLE laisee.laisees ADD COLUMN pending_created_at TIMESTAMP"
     )
+
+
+async def m005_add_deduct_fees(db: Connection):
+    """Let the creator choose to pay withdrawal fees out of the envelope."""
+    await db.execute(
+        "ALTER TABLE laisee.laisees ADD COLUMN deduct_fees BOOLEAN NOT NULL DEFAULT FALSE"
+    )

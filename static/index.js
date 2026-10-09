@@ -40,7 +40,7 @@ window.PageLaisee = {
             label: 'Amount (sat)',
             align: 'left',
             format: (_, row) => {
-              if (row.is_paid) return String(row.paid_amount)
+              if (row.is_paid) return String(row.withdrawable_sats ?? row.paid_amount)
               if (row.min_sats === row.max_sats) return String(row.min_sats)
               return `${row.min_sats} – ${row.max_sats}`
             }
@@ -60,7 +60,8 @@ window.PageLaisee = {
         data: {
           min_sats: 1000,
           max_sats: 1000,
-          allow_comment: false
+          allow_comment: false,
+          deduct_fees: false
         }
       },
       qrCodeDialog: {
@@ -104,7 +105,8 @@ window.PageLaisee = {
           wallet: wallet.id,
           min_sats: this.formDialog.data.min_sats,
           max_sats: this.formDialog.data.max_sats,
-          allow_comment: this.formDialog.data.allow_comment
+          allow_comment: this.formDialog.data.allow_comment,
+          deduct_fees: this.formDialog.data.deduct_fees
         })
         .then(response => {
           this.laisees.unshift(response.data)
@@ -141,7 +143,8 @@ window.PageLaisee = {
         data: {
           min_sats: 1000,
           max_sats: 1000,
-          allow_comment: false
+          allow_comment: false,
+          deduct_fees: false
         }
       }
     }
