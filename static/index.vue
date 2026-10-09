@@ -144,12 +144,21 @@
                     <h5 class="text-caption q-mt-sm q-mb-none">
                       Returns 201 CREATED
                     </h5>
-                    <code>{"id": ..., "lnurl_url": ..., "allow_comment": ..., ...}</code>
+                    <code
+                      >{"id": ..., "lnurl_url": ..., "allow_comment": ...,
+                      "deduct_fees": ..., "withdrawable_sats": ..., ...}</code
+                    >
+                    <p class="text-caption q-mt-sm q-mb-none">
+                      With <code>deduct_fees</code>, withdrawal fees are paid
+                      from the laisee: <code>withdrawable_sats</code> is the
+                      paid amount minus this instance's fee reserve.
+                      <code>min_sats</code> must exceed that reserve.
+                    </p>
                     <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
                     <code
                       >curl -X POST
                       <span v-text="baseUrl"></span>
-                      -d '{"title":"Happy New Year","min_sats":1000,"max_sats":1000,"allow_comment":true}'
+                      -d '{"title":"Happy New Year","min_sats":1000,"max_sats":1000,"allow_comment":true,"deduct_fees":true}'
                       -H "Content-type: application/json"
                       -H "X-Api-Key:
                       <span v-text="g.user.wallets[0].adminkey"></span>"

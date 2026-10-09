@@ -32,6 +32,12 @@ The QR code never changes. The protocol underneath it does.
 | `POST` | `/laisee/api/v1/laisees` | Admin key | Create a laisee |
 | `DELETE` | `/laisee/api/v1/laisees/{id}` | Admin key | Delete a laisee |
 
+`POST` accepts `title`, `min_sats`, `max_sats`, and the optional booleans `allow_comment` and `deduct_fees` (both default `false`). With `deduct_fees`, `min_sats` must be larger than the instance's fee reserve, or the request is rejected with `400`.
+
+Laisee objects include `withdrawable_sats`: the amount a recipient can withdraw once funded. It equals `paid_amount`, or `paid_amount` minus the fee reserve when `deduct_fees` is set.
+
+Claim fields (`unique_hash`, `k1`, `lnurl`, `lnurl_url`) are only returned to admin-key callers; with an invoice key they are blank.
+
 Full schema is available in the Swagger docs at `/docs#/laisee`.
 
 ## Requirements
