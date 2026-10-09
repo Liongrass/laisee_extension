@@ -75,14 +75,17 @@ window.PageLaisee = {
       return laiseeStateLabel(row)
     },
     getLaisees() {
-      LNbits.api
-        .request(
-          'GET',
-          '/laisee/api/v1/laisees?all_wallets=true',
-          this.g.user.wallets[0].inkey
+      // The claim link (lnurl_url) is only returned to admin-key callers,
+      // so fetch each wallet's laisees with that wallet's own admin key.
+      Promise.all(
+        this.g.user.wallets.map(wallet =>
+          LNbits.api.request('GET', '/laisee/api/v1/laisees', wallet.adminkey)
         )
-        .then(response => {
-          this.laisees = response.data
+      )
+        .then(responses => {
+          this.laisees = responses
+            .flatMap(response => response.data)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         })
         .catch(LNbits.utils.notifyApiError)
     },

@@ -298,9 +298,14 @@
     <q-dialog v-model="qrCodeDialog.show" position="top">
       <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
         <lnbits-qrcode-lnurl
+          v-if="activeUrl"
           :url="activeUrl"
           :nfc="true"
         ></lnbits-qrcode-lnurl>
+        <q-banner v-else class="bg-warning text-black">
+          Claim link unavailable. It is only shown when loaded with the
+          wallet's admin key.
+        </q-banner>
         <p style="word-break: break-all" class="q-mt-md">
           <strong>ID:</strong>
           <span v-text="qrCodeDialog.data.id"></span><br />
@@ -338,6 +343,7 @@
         <div class="row q-mt-lg q-gutter-sm">
           <q-btn
             outline
+            :disable="!activeUrl"
             color="grey"
             @click="utils.copyText(activeUrl, 'URL copied to clipboard!')"
           >
